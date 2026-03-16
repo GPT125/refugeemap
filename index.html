@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refugee — Three Journeys</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#060f1e; font-family:'Lato',sans-serif; color:#e8dcc8; }
+#map { position:fixed; inset:0; z-index:1; }
+
+.leaflet-control-attribution { background:rgba(4,10,24,0.8)!important; color:rgba(255,255,255,0.3)!important; font-size:0.58rem!important; }
+.leaflet-control-attribution a { color:rgba(255,255,255,0.4)!important; }
+.leaflet-control-zoom { display:none!important; }
+
+/* HEADER */
+#header {
+  position:fixed; top:0; left:0; right:0; z-index:600;
+  background:linear-gradient(180deg,rgba(4,10,24,0.97) 55%,transparent);
+  padding:16px 24px 48px; pointer-events:none;
+}
+#header h1 { font-family:'Bebas Neue',sans-serif; font-size:2.6rem; letter-spacing:6px; color:#c9a84c; text-shadow:0 0 40px rgba(201,168,76,0.55); line-height:1; }
+#header p  { font-family:'Playfair Display',serif; font-style:italic; font-size:0.86rem; color:rgba(232,220,200,0.45); margin-top:3px; }
+
+/* LEGEND */
+#legend {
+  position:fixed; top:14px; right:16px; z-index:600;
+  background:rgba(4,10,24,0.9); border:1px solid rgba(255,255,255,0.11);
+  border-radius:14px; padding:14px 18px 16px; backdrop-filter:blur(14px);
+  box-shadow:0 8px 40px rgba(0,0,0,0.65); min-width:220px;
+}
+.leg-heading { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:0.63rem; color:rgba(255,255,255,0.3); margin-bottom:11px; }
+.leg-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; cursor:pointer; transition:opacity 0.2s; border-radius:8px; padding:4px 6px; }
+.leg-row:last-child { margin-bottom:0; }
+.leg-row:hover { background:rgba(255,255,255,0.05); }
+.leg-dot  { width:13px; height:13px; border-radius:50%; flex-shrink:0; border:2.5px solid rgba(255,255,255,0.85); }
+.leg-line { width:28px; height:3px; border-radius:2px; flex-shrink:0; opacity:0.8; }
+.leg-name { font-family:'Playfair Display',serif; font-weight:700; font-size:0.9rem; display:block; }
+.leg-year { font-size:0.68rem; color:rgba(232,220,200,0.38); margin-top:1px; display:block; }
+
+/* FILTER BAR */
+#filter-bar {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  z-index:600; display:flex; gap:6px;
+  background:rgba(4,10,24,0.9); border:1px solid rgba(255,255,255,0.1);
+  border-radius:40px; padding:5px 8px; backdrop-filter:blur(14px);
+  box-shadow:0 6px 30px rgba(0,0,0,0.55); white-space:nowrap;
+}
+.ftab {
+  font-family:'Bebas Neue',sans-serif; letter-spacing:2px; font-size:0.76rem;
+  padding:7px 18px; border-radius:30px; border:none; cursor:pointer;
+  transition:all 0.2s; background:transparent; color:rgba(255,255,255,0.4);
+}
+.ftab:hover { color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.06); }
+.ftab.active { color:#fff; }
+
+/* ZOOM */
+#zoom-bar { position:fixed; bottom:24px; right:16px; z-index:600; display:flex; flex-direction:column; gap:5px; }
+.zbtn { width:38px; height:38px; border-radius:10px; background:rgba(4,10,24,0.9); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.7); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(10px); transition:all 0.18s; }
+.zbtn:hover { background:rgba(255,255,255,0.12); color:#fff; }
+
+/* TOOLTIP */
+.ev-tip { background:rgba(4,10,24,0.94)!important; border:1px solid rgba(255,255,255,0.13)!important; color:#fff!important; border-radius:8px!important; font-family:'Lato',sans-serif!important; font-size:0.8rem!important; padding:6px 12px!important; box-shadow:0 4px 20px rgba(0,0,0,0.5)!important; white-space:nowrap; pointer-events:none!important; }
+.leaflet-tooltip::before { display:none!important; }
+
+/* MODAL */
+#overlay { position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; }
+#overlay.open { display:flex; }
+#modal { background:#0b1628; border:1px solid rgba(255,255,255,0.08); border-radius:20px; width:min(700px,94vw); max-height:88vh; overflow-y:auto; position:relative; box-shadow:0 60px 140px rgba(0,0,0,0.9); animation:pop 0.28s cubic-bezier(0.34,1.4,0.64,1); }
+@keyframes pop { from{transform:scale(0.93) translateY(18px);opacity:0} to{transform:none;opacity:1} }
+#mstrip { height:5px; border-radius:20px 20px 0 0; }
+#mhead { padding:20px 28px 16px; border-bottom:1px solid rgba(255,255,255,0.06); position:sticky; top:0; background:#0b1628; border-radius:0; z-index:2; }
+#mbadge { display:inline-flex; align-items:center; gap:7px; font-family:'Bebas Neue',sans-serif; letter-spacing:2.5px; font-size:0.67rem; padding:4px 12px 4px 8px; border-radius:30px; margin-bottom:9px; }
+#mbadge .dot { width:8px; height:8px; border-radius:50%; }
+#mtitle { font-family:'Playfair Display',serif; font-size:1.55rem; font-weight:700; color:#fff; line-height:1.2; margin-bottom:4px; }
+#mloc   { font-style:italic; color:rgba(232,220,200,0.38); font-size:0.83rem; }
+#mclose { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:all 0.18s; }
+#mclose:hover { background:rgba(255,255,255,0.16); color:#fff; }
+#mbody { padding:20px 28px 28px; }
+.sec { margin-bottom:20px; }
+.sec-lbl { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:0.62rem; opacity:0.38; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.sec-lbl::before { content:''; display:block; width:16px; height:1px; background:currentColor; opacity:0.5; }
+.sec p { font-size:0.96rem; line-height:1.8; color:rgba(232,220,200,0.87); }
+.cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
+.card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:13px 15px; }
+.card .cl { font-family:'Bebas Neue',sans-serif; letter-spacing:2px; font-size:0.59rem; opacity:0.33; margin-bottom:5px; }
+.card .cv { font-size:0.88rem; font-weight:700; color:#fff; margin-bottom:4px; }
+.card .cd { font-size:0.79rem; color:rgba(232,220,200,0.5); line-height:1.55; }
+#modal::-webkit-scrollbar { width:3px; }
+#modal::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="header">
+  <h1>REFUGEE</h1>
+  <p>Alan Gratz · Three journeys across seven decades</p>
+</div>
+
+<div id="legend">
+  <div class="leg-heading">Character Journeys</div>
+  <div class="leg-row" onclick="focusChar('isabel')">
+    <div class="leg-dot"  style="background:#FF6B35"></div>
+    <div class="leg-line" style="background:#FF6B35"></div>
+    <div><span class="leg-name" style="color:#FF6B35">Isabel</span><span class="leg-year">Cuba → Miami · 1994</span></div>
+  </div>
+  <div class="leg-row" onclick="focusChar('josef')">
+    <div class="leg-dot"  style="background:#9B7FFF"></div>
+    <div class="leg-line" style="background:#9B7FFF"></div>
+    <div><span class="leg-name" style="color:#9B7FFF">Josef</span><span class="leg-year">Germany → Cuba → Europe · 1939</span></div>
+  </div>
+  <div class="leg-row" onclick="focusChar('mahmoud')">
+    <div class="leg-dot"  style="background:#1DD9C5"></div>
+    <div class="leg-line" style="background:#1DD9C5"></div>
+    <div><span class="leg-name" style="color:#1DD9C5">Mahmoud</span><span class="leg-year">Syria → Germany → France · 2015</span></div>
+  </div>
+</div>
+
+<div id="filter-bar">
+  <button class="ftab active" id="tab-all"     onclick="setFilter('all')">All</button>
+  <button class="ftab"        id="tab-isabel"  onclick="setFilter('isabel')">Isabel</button>
+  <button class="ftab"        id="tab-josef"   onclick="setFilter('josef')">Josef</button>
+  <button class="ftab"        id="tab-mahmoud" onclick="setFilter('mahmoud')">Mahmoud</button>
+</div>
+
+<div id="zoom-bar">
+  <button class="zbtn" onclick="map.zoomIn()">+</button>
+  <button class="zbtn" onclick="map.zoomOut()">−</button>
+  <button class="zbtn" onclick="map.setView([32,14],3)" style="font-size:0.72rem">⌂</button>
+</div>
+
+<!-- MODAL -->
+<div id="overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <div id="mstrip"></div>
+    <div id="mhead">
+      <div id="mbadge"><div class="dot" id="mbdot"></div><span id="mbtext"></span></div>
+      <div id="mtitle"></div>
+      <div id="mloc"></div>
+      <button id="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div id="mbody"></div>
+  </div>
+</div>
+
+<script>
+// ─── MAP INIT ───────────────────────────────────────────────────────
+const map = L.map('map', {
+  center:[32,14], zoom:3, zoomControl:false,
+  minZoom:2, maxZoom:13, worldCopyJump:true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains:'abcd', maxZoom:19
+}).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{
+  subdomains:'abcd', maxZoom:19, pane:'overlayPane'
+}).addTo(map);
+
+// ─── COLORS ─────────────────────────────────────────────────────────
+const C = { isabel:'#FF6B35', josef:'#9B7FFF', mahmoud:'#1DD9C5' };
+
+// ─── PATHS ──────────────────────────────────────────────────────────
+const PATHS = {
+  isabel: [
+    [23.13,-82.38],
+    [22.8,-81.0],
+    [22.5,-80.1],
+    [23.2,-78.5],
+    [24.1,-77.80],
+    [25.0,-79.8],
+    [25.20,-80.40],
+    [25.55,-80.55],
+  ],
+  josef: [
+    [53.55, 9.99],
+    [51.5,  2.0],
+    [48.0, -5.0],
+    [44.0,-14.5],
+    [40.0,-24.0],
+    [34.0,-42.0],
+    [27.5,-64.0],
+    [22.0,-80.80],
+    [26.5,-81.8],
+    [27.0,-80.45],
+    [27.5,-64.0],
+    [34.0,-42.0],
+    [40.0,-24.0],
+    [44.0,-14.5],
+    [48.0, -5.0],
+    [50.5,  2.5],
+    [51.22, 4.40],
+  ],
+  mahmoud: [
+    [36.20,37.16],
+    [37.00,36.50],
+    [37.05,35.30],
+    [37.03,30.50],
+    [37.03,27.43],
+    [37.45,26.10],
+    [37.90,23.70],
+    [40.60,22.90],
+    [41.60,21.70],
+    [44.80,20.50],
+    [46.10,18.20],
+    [47.80,16.60],
+    [48.14,11.58],
+    [47.50, 7.60],
+    [46.90, 2.53],
+  ],
+};
+
+// ─── DRAW PATHS + ARROW MARKERS ─────────────────────────────────────
+const pathLayers   = {};
+const arrowMarkers = {};
+
+function bearing(a, b) {
+  const toRad = d => d * Math.PI / 180;
+  const toDeg = r => r * 180 / Math.PI;
+  const dLon = toRad(b[1] - a[1]);
+  const y = Math.sin(dLon) * Math.cos(toRad(b[0]));
+  const x = Math.cos(toRad(a[0])) * Math.sin(toRad(b[0])) -
+            Math.sin(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.cos(dLon);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function midpoint(a, b) {
+  return [(a[0]+b[0])/2, (a[1]+b[1])/2];
+}
+
+Object.entries(PATHS).forEach(([char, coords]) => {
+  const color = C[char];
+  const line = L.polyline(coords, {
+    color, weight:3.5, opacity:0.9,
+    dashArray:'12 7', lineCap:'round', smoothFactor:1.8
+  }).addTo(map);
+  pathLayers[char] = line;
+
+  const arrows = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    if (i % 2 !== 0) continue;
+    const mid = midpoint(coords[i], coords[i+1]);
+    const ang = bearing(coords[i], coords[i+1]);
+    const icon = L.divIcon({
+      className:'',
+      html:`<svg width="13" height="13" viewBox="-6.5 -6.5 13 13" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(${ang}deg)">
+        <polygon points="0,-6 5,4 0,1 -5,4" fill="${color}" opacity="0.85"/>
+      </svg>`,
+      iconSize:[13,13], iconAnchor:[6,6]
+    });
+    const m = L.marker(mid, {icon, interactive:false}).addTo(map);
+    arrows.push(m);
+  }
+  arrowMarkers[char] = arrows;
+});
+
+// ─── EVENT DATA ──────────────────────────────────────────────────────
+const EV = {
+  // ── ISABEL ──
+  i1: {
+    char:'isabel', ll:[23.13,-82.38],
+    title:'Leaving Havana, Cuba',
+    loc:'Havana, Cuba · 1994',
+    story:'Isabel Fernandez, 11 year old is escaping Cuba with her family. Due to the collapes of the Solviet Union, resources were very scarce in Cuba and rioting was erupting around Cuba, making it a very dangerous place.',
+    real:'Havana, Cuba', realD:'In 1994, due to the economic collape in Cuba, many people were seen fleeing Cuba, in hopes of reaching the Miami Coast.',
+    fict:'Isabel\'s family and neighborhood', fictD:'Isabel\'s home, street, and other things that were in the book were fictional, although the crisis that happened in Cuba was real.',
+    sig:'This is significant becasue it caused Isabel\'s family to flee Cuba. This also had a lasting impact on Cuba as their economy is weak and many people are still suffering from limited resources.',
+  },
+  i2: {
+    char:'isabel', ll:[24.1,-77.80],
+    title:'Accidentally Arrives in the Bahamas',
+    loc:'Andores, The Bahamas',
+    story:'Storng currents and wind causes the raft to turn off course and too much east. Instead of arriving in Florida, they went to the Bahamas. A police on the island warned that if they were caught on the island they will be deported back to Cuba.',
+    real:'The Bahamas', realD:'An island less than 180 miles from Miami. Under U.S. and Bahaman agreements, Cuban rafters who arrived at the islands were detained and deported back to Cuba.',
+    fict:'The harbor trade scene', fictD:'Isabel is a fictional character and her boat did not land onto the Bahamas but many Cubans did arrive in the Bahamas during this time.',
+    sig:'',
+  },
+  i3: {
+    char:'isabel', ll:[25.20,-80.40],
+    title:'Ivan Dies in the Florida Straits',
+    loc:'Atlantic Ocean · Florida Straits',
+    story:'In the shark-infested waters of the Atlantic Ocean, Ivan the son of Isabel\'s neighbor Señor Castillo is killed by sharks. Everyone witnesses it.',
+    real:'The Florida Straits', realD:'The 90-mile crossing between Cuba and Florida is one of the world\'s most dangerous refugee routes. Shark attacks, drownings, and dehydration which claimed hundreds of lives during the 1994 Cuban crisis.',
+    fict:'Ivan and his death', fictD:'Ivan is a fictional character but many people did die from the journey.',
+    sig:'This can contribute to a bigger theme, during challenging situtation that you have to endure, there will be many sacrifices and risks until you reach your goal/destiny',
+  },
+  i4: {
+    char:'isabel', ll:[25.55,-80.55],
+    title:'Isabel Reaches Miami Shore',
+    loc:'Miami Beach, Florida, USA',
+    story:'Isabel\'s family finally sees the lights of Miami as they get closer to the Miami shore. They get chased by the US coast guard boat until the shore of Miami. To buy Isabel\'s family time to reach the shore, Isabel\'s grandfather Lito sacrifices himself, hoping the US coast guard will slow down to safe him. Right around this time Isabel\'s baby brother is born.',
+    real:'Miami Beach, Florida', realD:'The "wet foot / dry foot" policy (1995–2017) allowed Cubans who reached the American soil to remain. Miami\'s Cuban-American community is one of the largest Cuban communities in the U.S.',
+    fict:'The specific arrival beach and reunion', fictD:'The exact landing point of boats reaching Miami is fictional, but many families did reach Miami after there dreadful jounrey',
+    sig:'The "wet foot / dry foot" policy, shows Cubans mercy as they immigrate to another country.',
+  },
+
+  // ── JOSEF ──
+  j1: {
+    char:'josef', ll:[53.55,9.99],
+    title:'Escaping Nazi Germany on the MS St. Louis',
+    loc:'Hamburg, Germany · May 13, 1939',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  j2: {
+    char:'josef', ll:[22.0,-80.80],
+    title:'Rejected from Cuba',
+    loc:'Havana Harbour, Cuba · May–June 1939',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  j3: {
+    char:'josef', ll:[27.0,-80.45],
+    title:'Turned Away from the United States',
+    loc:'Off Miami Beach, Florida · June 1939',
+    story:'The MS St. Louis sails close enough to Miami that passengers can see city lights through binoculars. Desperate telegrams go to President Roosevelt and Jewish organizations. U.S. Coast Guard cutters circle the ship to prevent anyone from swimming ashore. Roosevelt never responds. The State Department refuses to make any exception. The ship turns back toward Europe.',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  j4: {
+    char:'josef', ll:[51.22,4.40],
+    title:'Returned to Europe — Josef\'s Sacrifice',
+    loc:'Antwerp, Belgium · 1939–1940',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+
+  // ── MAHMOUD ──
+  m1: {
+    char:'mahmoud', ll:[36.20,37.16],
+    title:'Fleeing Aleppo, Syria',
+    loc:'Aleppo, Syria · September 2015',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  m2: {
+    char:'mahmoud', ll:[37.03,27.43],
+    title:'The Mediterranean Crossing',
+    loc:'Bodrum, Turkey → Aegean Sea',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  m3: {
+    char:'mahmoud', ll:[37.90,23.70],
+    title:'Reaches Greece — Europe\'s Front Door',
+    loc:'Athens, Greece',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  m4: {
+    char:'mahmoud', ll:[41.60,21.70],
+    title:'The Balkan Route — Macedonia',
+    loc:'Skopje, North Macedonia',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  m5: {
+    char:'mahmoud', ll:[47.80,16.60],
+    title:'Welcomed in Austria',
+    loc:'Austrian-Hungarian Border · September 2015',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  m6: {
+    char:'mahmoud', ll:[48.14,11.58],
+    title:'Arrives in Munich, Germany',
+    loc:'Munich Hauptbahnhof, Germany',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+  m7: {
+    char:'mahmoud', ll:[46.90,2.53],
+    title:'Welcomed into Vornay, France — The Circle Closes',
+    loc:'Vornay, France · The Final Chapter',
+    story:'',
+    real:'', realD:'',
+    fict:'', fictD:'',
+    sig:'',
+  },
+};
+
+// ─── CREATE MARKERS ──────────────────────────────────────────────────
+const markerLayers = { isabel:[], josef:[], mahmoud:[] };
+
+Object.entries(EV).forEach(([id, ev]) => {
+  const c = C[ev.char];
+
+  const icon = L.divIcon({
+    className:'',
+    html:`<div style="position:relative;width:22px;height:22px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${c};opacity:0.25;animation:pulse 2s ease-out infinite;"></div>
+      <div style="position:absolute;inset:3px;border-radius:50%;background:${c};border:2.5px solid rgba(255,255,255,0.9);box-shadow:0 0 10px ${c}99;cursor:pointer;transition:transform 0.15s;"
+           onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>
+    </div>`,
+    iconSize:[22,22], iconAnchor:[11,11]
+  });
+
+  const mk = L.marker(ev.ll, {icon, zIndexOffset:1000})
+    .addTo(map)
+    .bindTooltip(`<b style="color:${c}">${ev.char.charAt(0).toUpperCase()+ev.char.slice(1)}</b> · ${ev.title}`, {
+      className:'ev-tip', direction:'top', offset:[0,-13], permanent:false
+    })
+    .on('click', () => openModal(id));
+
+  markerLayers[ev.char].push(mk);
+});
+
+// Add pulse keyframes globally
+const st = document.createElement('style');
+st.textContent = `@keyframes pulse{0%{transform:scale(1);opacity:0.4}70%{transform:scale(2.4);opacity:0}100%{transform:scale(2.4);opacity:0}}`;
+document.head.appendChild(st);
+
+// ─── FILTER ──────────────────────────────────────────────────────────
+const TAB_COLORS = { isabel:'#FF6B35', josef:'#9B7FFF', mahmoud:'#1DD9C5' };
+
+function setFilter(char) {
+  document.querySelectorAll('.ftab').forEach(t => {
+    t.classList.remove('active');
+    t.style.background = 'transparent';
+    t.style.color = 'rgba(255,255,255,0.4)';
+  });
+  const tab = document.getElementById('tab-'+char);
+  if (tab) {
+    tab.classList.add('active');
+    if (char === 'all') {
+      tab.style.background = 'rgba(255,255,255,0.1)';
+      tab.style.color = '#fff';
+    } else {
+      tab.style.background = TAB_COLORS[char] + '30';
+      tab.style.color = TAB_COLORS[char];
+    }
+  }
+
+  ['isabel','josef','mahmoud'].forEach(ch => {
+    const show = (char === 'all' || char === ch);
+    const lineOp  = show ? 0.9  : 0.06;
+    const arrowOp = show ? 0.85 : 0.0;
+
+    pathLayers[ch].setStyle({ opacity: lineOp });
+
+    arrowMarkers[ch].forEach(m => {
+      const el = m.getElement();
+      if (el) el.style.opacity = String(arrowOp);
+    });
+
+    markerLayers[ch].forEach(m => {
+      const el = m.getElement();
+      if (el) el.style.opacity = show ? '1' : '0.08';
+    });
+  });
+}
+
+document.getElementById('tab-all').style.background = 'rgba(255,255,255,0.1)';
+document.getElementById('tab-all').style.color = '#fff';
+document.getElementById('tab-all').classList.add('active');
+
+function focusChar(char) {
+  setFilter(char);
+  const starts = { isabel:[24.5,-79.5], josef:[48,10], mahmoud:[40,22] };
+  const zooms  = { isabel:5,            josef:3,        mahmoud:5      };
+  map.flyTo(starts[char], zooms[char], { duration:1.5 });
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────
+function openModal(id) {
+  const e = EV[id]; if (!e) return;
+  const c = C[e.char];
+
+  document.getElementById('mstrip').style.background = `linear-gradient(90deg,${c},${c}33)`;
+
+  const badge = document.getElementById('mbadge');
+  badge.style.cssText += `;background:${c}18;border:1px solid ${c}40;color:${c};`;
+  document.getElementById('mbdot').style.background = c;
+  document.getElementById('mbtext').textContent = e.char.toUpperCase();
+
+  document.getElementById('mtitle').textContent = e.title;
+  document.getElementById('mloc').textContent   = '📍 ' + e.loc;
+
+  // Build modal body — only show sections that have content
+  let html = '';
+
+  if (e.story) {
+    html += `<div class="sec">
+      <div class="sec-lbl">What Happens in the Story</div>
+      <p>${e.story}</p>
+    </div>`;
+  }
+
+  if (e.real || e.fict) {
+    html += `<div class="sec">
+      <div class="sec-lbl">Real vs. Fictional Settings</div>
+      <div class="cards">
+        <div class="card">
+          <div class="cl">REAL LOCATION</div>
+          <div class="cv">${e.real || '—'}</div>
+          <div class="cd">${e.realD || ''}</div>
+        </div>
+        <div class="card">
+          <div class="cl">FICTIONAL ELEMENT</div>
+          <div class="cv">${e.fict || '—'}</div>
+          <div class="cd">${e.fictD || ''}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if (e.sig) {
+    html += `<div class="sec">
+      <div class="sec-lbl">Historical Significance</div>
+      <p>${e.sig}</p>
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<div class="sec"><p style="opacity:0.45;font-style:italic;">No details added yet for this event.</p></div>`;
+  }
+
+  document.getElementById('mbody').innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>
