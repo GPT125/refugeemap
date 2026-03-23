@@ -25,6 +25,27 @@ html, body { width:100%; height:100%; overflow:hidden; background:#060f1e; font-
 #header h1 { font-family:'Bebas Neue',sans-serif; font-size:2.6rem; letter-spacing:6px; color:#c9a84c; text-shadow:0 0 40px rgba(201,168,76,0.55); line-height:1; }
 #header p  { font-family:'Playfair Display',serif; font-style:italic; font-size:0.86rem; color:rgba(232,220,200,0.45); margin-top:3px; }
 
+/* INTRO MODAL */
+#intro-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.5s ease;
+}
+#intro-box {
+  background: #0b1628; border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 24px; padding: 40px; max-width: 550px; text-align: center;
+  box-shadow: 0 30px 100px rgba(0,0,0,0.8);
+}
+#intro-box h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: #c9a84c; letter-spacing: 4px; margin-bottom: 15px; }
+#intro-box p { font-size: 1.05rem; line-height: 1.7; color: rgba(232,220,200,0.9); margin-bottom: 25px; }
+.start-btn {
+  font-family: 'Bebas Neue', sans-serif; background: #c9a84c; color: #060f1e;
+  border: none; padding: 12px 35px; font-size: 1.1rem; border-radius: 50px;
+  cursor: pointer; letter-spacing: 2px; transition: all 0.3s ease;
+}
+.start-btn:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(201,168,76,0.4); }
+
 /* LEGEND */
 #legend {
   position:fixed; top:14px; right:16px; z-index:600;
@@ -94,6 +115,20 @@ html, body { width:100%; height:100%; overflow:hidden; background:#060f1e; font-
 </style>
 </head>
 <body>
+
+<div id="intro-overlay">
+  <div id="intro-box">
+    <h2>Three Lives, One Hope</h2>
+    <p>
+      Explore the interconnected journeys of <strong>Josef, Isabel, and Mahmoud</strong>—three courageous children from the novel <em>Refugee</em>. 
+      Though separated by decades, each faced unimaginable adversity and showed incredible character growth.
+      <br><br>
+      Use this interactive map to trace their routes and click the points to discover the turning points of their lives.
+    </p>
+    <button class="start-btn" onclick="startExperience()">Begin the Journey</button>
+  </div>
+</div>
+
 <div id="map"></div>
 
 <div id="header">
@@ -122,9 +157,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#060f1e; font-
 
 <div id="filter-bar">
   <button class="ftab active" id="tab-all"     onclick="setFilter('all')">All</button>
-  <button class="ftab"        id="tab-isabel"  onclick="setFilter('isabel')">Isabel</button>
-  <button class="ftab"        id="tab-josef"   onclick="setFilter('josef')">Josef</button>
-  <button class="ftab"        id="tab-mahmoud" onclick="setFilter('mahmoud')">Mahmoud</button>
+  <button class="ftab"         id="tab-isabel"  onclick="setFilter('isabel')">Isabel</button>
+  <button class="ftab"         id="tab-josef"   onclick="setFilter('josef')">Josef</button>
+  <button class="ftab"         id="tab-mahmoud" onclick="setFilter('mahmoud')">Mahmoud</button>
 </div>
 
 <div id="zoom-bar">
@@ -133,7 +168,6 @@ html, body { width:100%; height:100%; overflow:hidden; background:#060f1e; font-
   <button class="zbtn" onclick="map.setView([32,14],3)" style="font-size:0.72rem">⌂</button>
 </div>
 
-<!-- MODAL -->
 <div id="overlay" onclick="if(event.target===this)closeModal()">
   <div id="modal">
     <div id="mstrip"></div>
@@ -148,6 +182,15 @@ html, body { width:100%; height:100%; overflow:hidden; background:#060f1e; font-
 </div>
 
 <script>
+// ─── INTRO LOGIC ───────────────────────────────────────────────────
+function startExperience() {
+  const overlay = document.getElementById('intro-overlay');
+  overlay.style.opacity = '0';
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 500);
+}
+
 // ─── MAP INIT ───────────────────────────────────────────────────────
 const map = L.map('map', {
   center:[32,14], zoom:3, zoomControl:false,
@@ -404,7 +447,7 @@ Object.entries(EV).forEach(([id, ev]) => {
     html:`<div style="position:relative;width:22px;height:22px;">
       <div style="position:absolute;inset:0;border-radius:50%;background:${c};opacity:0.25;animation:pulse 2s ease-out infinite;"></div>
       <div style="position:absolute;inset:3px;border-radius:50%;background:${c};border:2.5px solid rgba(255,255,255,0.9);box-shadow:0 0 10px ${c}99;cursor:pointer;transition:transform 0.15s;"
-           onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>
+            onmouseover="this.style.transform='scale(1.5)'" onmouseout="this.style.transform='scale(1)'"></div>
     </div>`,
     iconSize:[22,22], iconAnchor:[11,11]
   });
@@ -471,7 +514,7 @@ document.getElementById('tab-all').classList.add('active');
 function focusChar(char) {
   setFilter(char);
   const starts = { isabel:[24.5,-79.5], josef:[48,10], mahmoud:[40,22] };
-  const zooms  = { isabel:5,            josef:3,        mahmoud:5      };
+  const zooms  = { isabel:5,             josef:3,         mahmoud:5      };
   map.flyTo(starts[char], zooms[char], { duration:1.5 });
 }
 
